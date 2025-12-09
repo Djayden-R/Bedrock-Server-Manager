@@ -13,7 +13,7 @@ import logging
 log = logging.getLogger("bsm")
 
 
-def generate_file_name(cfg: Config):
+def generate_file_name():
     # generate a name including the date for identification
     date = datetime.datetime.now()
 
@@ -106,11 +106,15 @@ def quick_backup(cfg: Config):
     # copy the temp backup to the local folder and/or the hdd folder
     if cfg.backup_local_path:
         backup_folder = os.path.join(cfg.backup_local_path, folder_name)
+        if not Path(backup_folder).exists():
+            Path(backup_folder).mkdir(parents=True)
         shutil.copy(temp_backup_path, backup_folder)
         update_sym_link(cfg, temp_backup_path)  # update symlink for later backup's
 
     if cfg.backup_hdd_path:
         backup_folder = os.path.join(cfg.backup_hdd_path, folder_name)
+        if not Path(backup_folder).exists():
+            Path(backup_folder).mkdir(parents=True)
         shutil.copy(temp_backup_path, backup_folder)
 
 
