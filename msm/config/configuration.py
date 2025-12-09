@@ -70,7 +70,7 @@ def dynu_setup():
     if not questionary.confirm("You should be on the control panel, correct?").ask():
         print("No problem! Just go to https://www.dynu.com/en-US/ControlPanel or click on the settings icon.")
 
-    print("There you must click on \"DDNS Services\" and then \"Add\"")
+    print("\nThere you must click on \"DDNS Services\" and then \"Add\"")
     print("Follow the prompts to create a new DDNS service.")
     questionary.press_any_key_to_continue("Press any key once you have created a DDNS service.").ask()
 
@@ -181,8 +181,10 @@ def automatic_backups_setup(program_location: str) -> tuple[Path, Path | None, s
     hdd_backup = "Back up to external drive" in backup_options
     drive_backup = "Drive backup" in backup_options
 
+    print("Where do you want to save the local backups?")
+    print("[italic underline red]DO NOT[/] select the main folder for this project, since backups will then contain every previous backup")
     local_path = questionary.path(
-        "Where do you want to save the local backups?\n DO NOT select the main folder for this project, since backups will also contain previous backups",
+        "Location (Tab to autocomplete):",
         default=os.path.join(str(os.path.dirname(program_location)), "backups"),
         only_directories=True
     ).ask()
@@ -226,7 +228,7 @@ def get_minecraft_ip():
 
 
 def add_alias(program_location: str):
-    subprocess.run(['bash', '-c', f'echo \'alias bsm="{program_location}"\' >> ~/.bashrc'])
+    subprocess.run(['bash', '-c', f'echo \'alias bsm=\"{program_location}\"\' >> ~/.bashrc'])
 
 
 def main():
