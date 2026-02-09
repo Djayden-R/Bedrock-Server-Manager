@@ -72,10 +72,11 @@ def clear_old_backups(backup_per_date: dict[str, list[Path]], required_free_spac
     for date in all_dates:
         date_object = datetime.strptime(date, "%Y-%m-%d")
         current_date = datetime.now()
-        days_ago = (current_date - date_object).days  # calculate how old the backup is in days
-        if days_ago <= 7:
+        backup_age = (current_date - date_object).days
+        
+        if backup_age <= 7:
             last_7_days.append(date)
-        elif days_ago <= 30:
+        elif backup_age <= 30:
             last_30_days.append(date)
         else:
             old_backups.append(date)
@@ -87,7 +88,7 @@ def clear_old_backups(backup_per_date: dict[str, list[Path]], required_free_spac
     previous_freed_space = -1
 
     while freed_space < required_free_space:
-        # check to prevent infinite loops
+        # Check to prevent infinite loops
         if freed_space == previous_freed_space:
             log.info(f"No more space can be freed. Current freed space: {freed_space:.2f} GB, Required: {required_free_space:.2f} GB")
             break
@@ -123,19 +124,18 @@ def clear_duplicate_files(backup_folders: Iterable[str], base_path: Path, backup
             backup_path = os.path.join(folder_path, backup)
             size = os.path.getsize(backup_path)
 
-            # file is new
-            if size not in size_list:
+            file_new = size not in size_list
+
+            if file_new:
                 size_list.append(size)
 
-            # file might be a duplicate, so we remove it
-            # we don't use a checksum, because it is slow and many backups aren't exact duplicates
             else:
                 log.info("Duplicate found")
                 duplicates += 1
-                os.remove(backup_path)  # for testing purposes we don't want to delete files
+                os.remove(backup_path)
                 log.info(f"Removed {backup_path} with size {size/(1024**3):.2f} GB")
 
-                # remove the backup from the dictionary to keep it in sync
+                # Remove the backup from the dictionary to keep it in sync
                 if folder in backup_per_date and Path(backup) in backup_per_date[folder]:
                     backup_per_date[folder].remove(Path(backup))
 
