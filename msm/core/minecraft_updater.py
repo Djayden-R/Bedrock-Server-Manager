@@ -33,7 +33,7 @@ def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def download(url: str, file_path: Path):
+def download_file(url: str, file_path: Path):
     r = requests.get(url, stream=True)
 
     with open(file_path, "wb") as f:
@@ -41,8 +41,8 @@ def download(url: str, file_path: Path):
             f.write(chunk)
 
 
-def get_latest_release(repo_name: str, download_location: Path, filename: Optional[str] = None):
-    url = f"https://api.github.com/repos/{repo_name}/releases/latest"
+def get_latest_release(repository_name: str, download_location: Path, file_name: Optional[str] = None):
+    url = f"https://api.github.com/repos/{repository_name}/releases/latest"
 
     response = requests.get(url)
     response.raise_for_status()
@@ -50,15 +50,14 @@ def get_latest_release(repo_name: str, download_location: Path, filename: Option
 
     for asset in release["assets"]:
 
-        if asset["name"] == filename:
-
+        if asset["name"] == file_name:
             # Location for where file will be saved
             file_path = Path(os.path.join(download_location, asset['name']))
 
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-            download(asset["browser_download_url"], file_path)
+            download_file(asset["browser_download_url"], file_path)
 
             download_success = os.path.exists(file_path) and os.path.getsize(file_path) > 0
 
@@ -68,7 +67,7 @@ def get_latest_release(repo_name: str, download_location: Path, filename: Option
                 log.error("Problem during download")
 
 
-def get_console_bridge(cfg: Config):
+def get_latest_version_console_bridge(cfg: Config):
     if cfg.path_base:
         console_bridge_folder = Path(os.path.join(cfg.path_base, "console_bridge"))
         if not console_bridge_folder.exists():
@@ -77,7 +76,7 @@ def get_console_bridge(cfg: Config):
         if os.path.exists(console_bridge_file):
             os.remove(console_bridge_file)
 
-        get_latest_release(console_bridge_repo, console_bridge_folder, filename="MCXboxBroadcastStandalone.jar")
+        get_latest_release(console_bridge_repo, console_bridge_folder, file_name="MCXboxBroadcastStandalone.jar")
     else:
         raise ValueError("Cannot get console bridge, since base path is not defined")
 
@@ -159,7 +158,7 @@ def get_minecraft_updater(cfg: Config):
         print("Cannot get Minecraft updater, since download location is not defined")
 
 
-def update_minecraft_server(cfg: Config):
+def update_minecraft_server(cfg: Config) -> bool:
     if cfg.path_base:
         mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
         minecraft_updater_path = os.path.expanduser(f"{mc_updater_path}/updater/mcserver_autoupdater.py")
@@ -177,5 +176,5 @@ def update_minecraft_server(cfg: Config):
 
 
 def main(cfg: Config):
-    get_console_bridge(cfg)
+    get_latest_version_console_bridge(cfg)
     update_minecraft_server(cfg)
