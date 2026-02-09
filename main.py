@@ -29,10 +29,10 @@ log.propagate = False
 
 
 class Mode(Enum):
-    NORMAL = "normal"  # Normal operating mode, shutdown after defined time and create local backup and hdd backup (depends on config)
-    DRIVE_BACKUP = "drive backup"  # Upload latest backup to drive, then shutdown
-    INVALID = "invalid time"  # Boot up at an invalid time, just shutdown
-    CONFIGURATION = "config"  # go through set-up process
+    NORMAL = "normal"
+    DRIVE_BACKUP = "drive backup"  
+    INVALID = "invalid time"  
+    CONFIGURATION = "config"
 
 
 def shutdown(reboot: bool = False):
@@ -113,7 +113,7 @@ def normal_operation():
     if cfg.timing_shutdown:
         while True:
             needs_backup = check_playercount(cfg)
-            if needs_backup is True:  # server needs backup
+            if needs_backup is True:
                 if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
                     log.info("Shutting down Minecraft server...")
                     stop_server(cfg)
@@ -126,14 +126,14 @@ def normal_operation():
                     shutdown()
                 else:
                     log.info("Auto shutdown is shut off...")
-            elif needs_backup is False:  # server doesn't need backup
+            elif needs_backup is False:
                 if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
                     log.info("No one online, but server was not used, backup is not needed")
                     log.info("Shutting down Minecraft server...")
                     stop_server(cfg)
                     log.info("Shutting down...")
                     shutdown()
-            elif needs_backup is None:  # error occured
+            elif needs_backup is None:
                 log.error("Error occurred in check_playercount, cannot proceed with shutdown/backup")
                 break
     else:
@@ -152,14 +152,18 @@ def main():
     log.info(f"Current mode: {mode.value}")
 
     if mode == Mode.NORMAL:
+        # Standard operating mode, shutdown after defined time and create backups (depending on config)
         normal_operation()
     elif mode == Mode.DRIVE_BACKUP:
+        # Upload latest backup to drive, then shutdown
         drive_backup()
     elif mode == Mode.INVALID:
+        # Shutdown server if started at incorrect time
         log.info("Invalid time, shutting down")
         shutdown()
         sys.exit(1)
     elif mode == Mode.CONFIGURATION:
+        # Run setup file and go through setup questions
         from msm.config import configuration
         if getattr(sys, 'frozen', False):
             configuration.run_setupsh()
