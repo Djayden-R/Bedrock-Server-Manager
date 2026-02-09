@@ -19,12 +19,11 @@ def update_DNS(cfg: Config | None = None, test = False, domain = None, password 
     response = requests.get(url, params=params)
 
     if "good" in response.text:
-        if test:
-            return True
-        else:
-            log.info(f"[{datetime.now()}] DDNS update successful")
+        log.info(f"DDNS update successful")
+    elif "nochg" in response.text:
+        log.info(f"DDNS update successful (IP is unchanged)")
     else:
-        if test:
-            return True
-        else:
-            log.error(f"[{datetime.now()}] DDNS update failed: {response.text}")
+        log.error(f"DDNS update failed: {response.text}")
+    
+    if test:
+        return True
