@@ -8,6 +8,22 @@ import questionary
 from pathlib import Path
 from typing import Optional
 import yaml
+import logging
+from rich.logging import RichHandler
+
+# Logger setup
+log = logging.getLogger("bsm")
+log.setLevel(logging.INFO)
+
+handler = RichHandler(
+    rich_tracebacks=True,
+    show_time=True,
+    show_level=True,
+    markup=True,
+    log_time_format="%H:%M:%S.%f"
+)
+log.addHandler(handler)
+log.propagate = False
 
 console_bridge_repo = "MCXboxBroadcast/Broadcaster"
 minecraft_updater_repo = "ghwns9652/Minecraft-Bedrock-Server-Updater"
@@ -36,21 +52,20 @@ def get_latest_release(repo_name: str, download_location: Path, filename: Option
 
         if asset["name"] == filename:
 
-            # location for where file will be saved
+            # Location for where file will be saved
             file_path = Path(os.path.join(download_location, asset['name']))
 
-            # remove file if it already exists
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-            # download file to it's location
             download(asset["browser_download_url"], file_path)
 
-            # check if file downloaded successfully
-            if os.path.exists(file_path):
-                print("File is successfully downloaded")
+            download_success = os.path.exists(file_path) and os.path.getsize(file_path) > 0
+
+            if download_success:
+                log.info("File is successfully downloaded")
             else:
-                print("Problem during download")
+                log.error("Problem during download")
 
 
 def get_console_bridge(cfg: Config):
@@ -64,7 +79,7 @@ def get_console_bridge(cfg: Config):
 
         get_latest_release(console_bridge_repo, console_bridge_folder, filename="MCXboxBroadcastStandalone.jar")
     else:
-        print("Cannot get console bridge, since base path is not defined")
+        raise ValueError("Cannot get console bridge, since base path is not defined")
 
 
 def authenticate_console_bridge(cfg: Config):
@@ -97,10 +112,10 @@ def authenticate_console_bridge(cfg: Config):
                     if process.stdout:
                         process.stdout.close()
             else:
-                print("There is no output from the console bridge")
+                log.error("There is no output from the console bridge")
         else:
-            print("Console bridge is not found")
-            print(f"Checked this path: {console_bridge_path}")
+            log.error("Console bridge is not found")
+            log.error(f"Checked this path: {console_bridge_path}")
     else:
         raise ValueError("Cannot authenticate console bridge, since base path is not defined")
 

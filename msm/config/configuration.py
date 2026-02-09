@@ -16,12 +16,27 @@ import shutil
 from rich import print
 from rich.spinner import Spinner
 from rich.live import Live
+import logging
+from rich.logging import RichHandler
 
+# Logger setup
+log = logging.getLogger("bsm")
+log.setLevel(logging.INFO)
+
+handler = RichHandler(
+    rich_tracebacks=True,
+    show_time=True,
+    show_level=True,
+    markup=True,
+    log_time_format="%H:%M:%S.%f"
+)
+log.addHandler(handler)
+log.propagate = False
 
 def run_setupsh():
     # Make a temp folder
     tmpdir = tempfile.mkdtemp(prefix="bsm_")
-    print(f"Moving setup.sh to: {tmpdir}")
+    log.info(f"Moving setup.sh to: {tmpdir}")
 
     # Copy setup.sh file into a temp dir and give it permission to run
     src = os.path.join(sys._MEIPASS, "setup.sh")
@@ -30,24 +45,34 @@ def run_setupsh():
     os.chmod(dst, 0o755)
 
     # Run the setup file
-    print("Running setup.sh...")
+    log.info("Running setup.sh...")
     subprocess.run(["bash", dst], check=True)
-    print("Setup finished.")
+    log.info("Setup finished.")
 
     # Clean up temp dir
     shutil.rmtree(tmpdir)
-    print("Cleaned up temporary files.")
+    log.info("Cleaned up temporary files.")
 
 
 # Setup file for new users
 def linux_check():
     if sys.platform != "linux":
-        print("You are not running Linux. This program will not work as expected.")
+        log.warning("You are not running Linux. This program will not work as expected.")
         input("Press enter to continue or ctrl+c to exit.")
 
 
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_program_location():
+    program_location = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
+
+    if questionary.confirm(f"{program_location} \nAre you sure you want to use the above location for this program?").ask():
+        print("Great, let's continue")
+        return program_location
+    else:
+        questionary.press_any_key_to_continue("Please move this program to the location you want to use and run it again.").ask()
+        sys.exit(0)
 
 
 def password_confirm() -> str:
@@ -141,20 +166,27 @@ def home_assistant_setup():
 def shutdown_mode_setup(drive_enabled: bool):
     clear_console()
     print("This code is made to shutdown your server after a set amount of time where no one is online")
-    if questionary.confirm("Would you like to enable that?").ask():
+    setup_auto_shutdown = questionary.confirm("Would you like to enable that?").ask()
+    
+    if setup_auto_shutdown:
         shutdown_time = int(questionary.text(
             "After how many minutes of inactivity should the server shutdown?",
             validate=lambda val: val.isdigit() or "Enter a number"
         ).ask())
-        if questionary.confirm("It is also possible to enable certain timeframes where the server will not startup.\nWould you like to enable that?").ask():
+        
+        enable_valid_times = questionary.confirm("It is also possible to enable certain timeframes where the server will not startup.\nWould you like to enable that?").ask()
+
+        if enable_valid_times:
             begin_valid_time = int(questionary.text(
                 "Enter the start time in 24h format HH",
                 validate=lambda val: val.isdigit() and 0 <= int(val.removeprefix("0") if len(val) > 1 else val) < 24 or "Enter a valid time in HH format"
             ).ask().removeprefix("0"))
+
             end_valid_time = int(questionary.text(
                 "Enter the end time in 24h format (HH)",
                 validate=lambda val: val.isdigit() and 0 <= int(val.removeprefix("0") if len(val) > 1 else val) < 24 or "Enter a valid time in HH format"
             ).ask().removeprefix("0"))
+            
         begin_valid_time = end_valid_time = None
     else:
         shutdown_time = begin_valid_time = end_valid_time = None
@@ -167,6 +199,7 @@ def shutdown_mode_setup(drive_enabled: bool):
             ).ask().removeprefix("0"))
     else:
         drive_backup_time = None
+    
     return shutdown_time, begin_valid_time, end_valid_time, drive_backup_time
 
 
@@ -233,30 +266,27 @@ def main():
     print("Hi, there!")
     print("This is a program for fully managing your bedrock server")
 
+    # Display warning if program is not run on Linux
     linux_check()
 
     clear_console()
 
-    # Gather all variables and save them to a dictionary
     config_data = {}
 
-    program_location = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
-    if questionary.confirm(f"{program_location} \nAre you sure you want to use the above location for this program?").ask():
-        print("Great, let's continue")
-        config_data["path"] = {"base": program_location}
-    else:
-        print("Please move this program to the location you want to use and run it again.")
-        time.sleep(3)
-        sys.exit(0)
+    program_location = get_program_location()
+
+    config_data["path"] = {"base": program_location}
+
+    clear_console()
 
     questionary.press_any_key_to_continue("I am going to ask you a few questions to set everything up.").ask()
 
-    services = questionary.checkbox("What services do you want to set up?", choices=["Home Assistant", "Dynu DNS", "Automatic shutdown", "Automatic backups"]).ask()
+    activated_services = questionary.checkbox("What services do you want to set up?\nAll of these are recommended", choices=["Home Assistant", "Dynu DNS", "Automatic shutdown", "Automatic backups"]).ask()
 
-    home_assistant = "Home Assistant" in services
-    dynu = "Dynu DNS" in services
-    auto_shutdown = "Automatic shutdown" in services
-    auto_backup = "Automatic backups" in services
+    home_assistant = "Home Assistant" in activated_services
+    dynu = "Dynu DNS" in activated_services
+    auto_shutdown = "Automatic shutdown" in activated_services
+    auto_backup = "Automatic backups" in activated_services
 
     if home_assistant:
         ha_ip, ha_token, auto_shutdown_entity = home_assistant_setup()
