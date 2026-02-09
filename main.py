@@ -36,7 +36,7 @@ class Mode(Enum):
 
 
 def shutdown(reboot: bool = False):
-    cmd = ["sudo", "shutdown"]
+    cmd = ["/usr/sbin/shutdown"]
     if reboot:
         cmd.append("-r")
     cmd.append("now")
