@@ -67,6 +67,11 @@ To configure Rclone follow one of these tutorials:
 - [**for Google Drive**](https://www.youtube.com/watch?v=FQuMFrazK1Y)
 - [**for Onedrive**](https://www.youtube.com/watch?v=dTFt2DkOde4)
 
+## Planned features
+- Replacing Home Assistant API for MQTT
+- Adding (almost) all variables to MQTT
+- Parsing tmux to make a chat sensor
+
 ## Acknowledgments
 
 This project integrates the following open-source tools:
