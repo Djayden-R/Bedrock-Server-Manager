@@ -36,6 +36,7 @@ class Mode(Enum):
 
 
 def shutdown(reboot: bool = False):
+    log.info("Shutting down...")
     cmd = ["/usr/sbin/shutdown"]
     if reboot:
         cmd.append("-r")
@@ -71,38 +72,29 @@ def get_mode():
 
 
 def start_server(cfg: Config):
-    if cfg.path_base:
-        mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
-        subprocess.run(['bash', mc_updater_path+'/updater/startserver.sh', mc_updater_path])
-    else:
-        raise ValueError("Base path is not defined")
+    mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
+    subprocess.run(['bash', mc_updater_path+'/updater/startserver.sh', mc_updater_path])
 
 
 def stop_server(cfg: Config):
-    if cfg.path_base:
-        mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
-        subprocess.run(['bash', mc_updater_path+'/updater/stopserver.sh', mc_updater_path])
-    else:
-        raise ValueError("Base path is not defined")
+    log.info("Shutting down Minecraft server...")
+
+    mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
+    subprocess.run(['bash', mc_updater_path+'/updater/stopserver.sh', mc_updater_path])
 
 
 def normal_operation():
-    if cfg.dynu_domain and cfg.dynu_pass:
-        update_DNS(cfg)
+    update_DNS(cfg)
 
     server_updated = update_minecraft_server(cfg) # Try to update server and save whether it was updated
 
-    if cfg.path_base:
-        console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
-        console_bridge_used = console_bridge.exists()
-    else:
-        raise ValueError("Base path is not defined")
+    console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
+    console_bridge_used = console_bridge.exists()
 
     if server_updated:
         if console_bridge_used:
             get_console_bridge(cfg)
         shutdown(reboot=True)
-        exit(0)
 
     else:
         start_server(cfg)
@@ -112,30 +104,28 @@ def normal_operation():
 
     if cfg.timing_shutdown:
         while True:
-            needs_backup = check_playercount(cfg)
-            if needs_backup is True:
-                if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
-                    log.info("Shutting down Minecraft server...")
+            server_used = check_playercount(cfg)
+            auto_shutdown_enabled = entity_status(cfg)
+
+            if server_used:
+                if auto_shutdown_enabled:
                     stop_server(cfg)
+
                     if cfg.backup_directories:
-                        log.info("Starting backup script")
                         backup.main(cfg, type="quick")
                     else:
                         log.info("No backup directories, skipping backup")
-                    log.info("Shutting down...")
+                    
                     shutdown()
                 else:
                     log.info("Auto shutdown is shut off...")
-            elif needs_backup is False:
-                if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
+            else:
+                if auto_shutdown_enabled:
                     log.info("No one online, but server was not used, backup is not needed")
                     log.info("Shutting down Minecraft server...")
                     stop_server(cfg)
                     log.info("Shutting down...")
                     shutdown()
-            elif needs_backup is None:
-                log.error("Error occurred in check_playercount, cannot proceed with shutdown/backup")
-                break
     else:
         log.warning("Auto shutdown is off, this is not reccomended, backups will not work")
 
@@ -148,6 +138,9 @@ def drive_backup():
 
 
 def main():
+    if not cfg.path_base:
+        raise ValueError("Base path is not defined")
+    
     mode = get_mode()
     log.info(f"Current mode: {mode.value}")
 
@@ -159,7 +152,7 @@ def main():
         drive_backup()
     elif mode == Mode.INVALID:
         # Shutdown server if started at incorrect time
-        log.info("Invalid time, shutting down")
+        log.warning("Invalid time, shutting down")
         shutdown()
         sys.exit(1)
     elif mode == Mode.CONFIGURATION:
