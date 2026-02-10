@@ -9,11 +9,14 @@ log = logging.getLogger("bsm")
 url = "https://api.dynu.com/nic/update"
 
 
-def update_DNS(cfg: Config | None = None, test = False, domain = None, password = None):
+def update_DNS(cfg: Config):
+
+    if not (cfg.dynu_domain and cfg.dynu_pass):
+        return
 
     params = {
-        "hostname": cfg.dynu_domain if cfg else domain,
-        "password": cfg.dynu_pass if cfg else password,
+        "hostname": cfg.dynu_domain,
+        "password": cfg.dynu_pass,
     }
 
     response = requests.get(url, params=params)
@@ -21,9 +24,6 @@ def update_DNS(cfg: Config | None = None, test = False, domain = None, password 
     if "good" in response.text:
         log.info(f"DDNS update successful")
     elif "nochg" in response.text:
-        log.info(f"DDNS update successful (IP is unchanged)")
+        log.info(f"DDNS is unchanged")
     else:
         log.error(f"DDNS update failed: {response.text}")
-    
-    if test:
-        return True
