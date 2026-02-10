@@ -57,7 +57,7 @@ def check_playercount(cfg: Config) -> bool | str | None:
                     log.info(f"No-shutdown flag found, restarting check...")
                 else:
                     # Return if a backup is needed
-                    return True if server_used else False
+                    return server_used
 
         # Wait before next check
         sleep(interval_seconds)
