@@ -9,6 +9,17 @@ import sys
 
 @dataclass(frozen=True)
 class Config:
+    ## Required
+
+    # Minecraft Server
+    mc_ip: IPv4Address | IPv6Address
+    mc_port: int
+
+    # Paths
+    path_base: str
+    
+    ## Optional
+
     # Home Assistant
     ha_ip: Optional[str] = None
     ha_token: Optional[str] = None
@@ -18,10 +29,6 @@ class Config:
     # Dynu DNS
     dynu_pass: Optional[str] = None
     dynu_domain: Optional[str] = None
-
-    # Minecraft Server
-    mc_ip: Optional[IPv4Address | IPv6Address] = None
-    mc_port: Optional[int] = None
 
     # Backup settings
     backup_local_path: Optional[str] = None
@@ -34,9 +41,6 @@ class Config:
     timing_end_valid: Optional[int] = None
     timing_shutdown: Optional[int] = None
     timing_drive_backup: Optional[int] = None
-
-    # Paths
-    path_base: Optional[str] = None
 
     @classmethod
     def load(cls) -> "Config":
