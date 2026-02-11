@@ -5,7 +5,7 @@ import questionary
 import os
 import yaml
 from msm.config.load_config import Config
-from msm.services.check_ha import check_api
+from msm.services.ha_mqtt import check_mqtt
 import msm.core.minecraft_updater
 from msm.services.ddns_update import update_DNS
 import subprocess
