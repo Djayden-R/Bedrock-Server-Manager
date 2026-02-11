@@ -9,7 +9,17 @@ log = logging.getLogger("bsm")
 url = "https://api.dynu.com/nic/update"
 
 
-def update_DNS(cfg: Config | None = None, test = False, domain = None, password = None):
+def test_update_DNS():
+    pass
+
+def update_DNS(cfg: Config):
+    if not (cfg.dynu_domain and cfg.dynu_pass):
+        return
+    
+    
+def update_DNS_raw(host_name: str, port: int):
+    
+
 
     params = {
         "hostname": cfg.dynu_domain if cfg else domain,
