@@ -1,9 +1,9 @@
 from msm.services.ddns_update import update_DNS
 from msm.services.server_status import check_playercount
-from msm.services.check_ha import entity_status
+from msm.services.ha_mqtt import setup_mqtt
 from msm.config.load_config import Config
 import msm.core.backup as backup
-from msm.core.minecraft_updater import get_console_bridge, update_minecraft_server
+from msm.core.minecraft_updater import get_latest_version_console_bridge, update_minecraft_server
 import sys
 from datetime import datetime
 from enum import Enum
@@ -90,7 +90,8 @@ def normal_operation():
     if cfg.dynu_domain and cfg.dynu_pass:
         update_DNS(cfg)
 
-    server_updated = update_minecraft_server(cfg) # Try to update server and save whether it was updated
+    # Try to update server and save whether it was updated
+    server_updated = update_minecraft_server(cfg)
 
     if cfg.path_base:
         console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
@@ -111,31 +112,28 @@ def normal_operation():
             subprocess.Popen(["java", "-jar", str(console_bridge)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=console_bridge_dir)
 
     if cfg.timing_shutdown:
-        while True:
-            needs_backup = check_playercount(cfg)
-            if needs_backup is True:
-                if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
-                    log.info("Shutting down Minecraft server...")
-                    stop_server(cfg)
-                    if cfg.backup_directories:
-                        log.info("Starting backup script")
-                        backup.main(cfg, type="quick")
-                    else:
-                        log.info("No backup directories, skipping backup")
-                    log.info("Shutting down...")
-                    shutdown()
+        server_used = check_playercount(cfg)
+        auto_shutdown_enabled = entity_status(cfg)
+
+        if server_used:
+            if auto_shutdown_enabled:
+                stop_server(cfg)
+
+                if cfg.backup_directories:
+                    backup.main(cfg, type="quick")
                 else:
-                    log.info("Auto shutdown is shut off...")
-            elif needs_backup is False:
-                if entity_status(cfg, cfg.ha_shutdown_entity):  # type: ignore
-                    log.info("No one online, but server was not used, backup is not needed")
-                    log.info("Shutting down Minecraft server...")
-                    stop_server(cfg)
-                    log.info("Shutting down...")
-                    shutdown()
-            elif needs_backup is None:
-                log.error("Error occurred in check_playercount, cannot proceed with shutdown/backup")
-                break
+                    log.info("No backup directories, skipping backup")
+                
+                shutdown()
+            else:
+                log.info("Auto shutdown is shut off...")
+        else:
+            if auto_shutdown_enabled:
+                log.info("No one online, but server was not used, backup is not needed")
+                log.info("Shutting down Minecraft server...")
+                stop_server(cfg)
+                log.info("Shutting down...")
+                shutdown()
     else:
         log.warning("Auto shutdown is off, this is not reccomended, backups will not work")
 
