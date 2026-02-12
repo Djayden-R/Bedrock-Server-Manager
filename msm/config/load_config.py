@@ -20,7 +20,7 @@ class Config:
     ## Optional
 
     # Home Assistant
-    mqtt_ip: Optional[str] = None
+    mqtt_url: Optional[str] = None
     mqtt_port: Optional[int] = None
     mqtt_username: Optional[str] = None
     mqtt_password: Optional[str] = None

@@ -7,7 +7,7 @@ import yaml
 from msm.config.load_config import Config
 from msm.services.ha_mqtt import check_mqtt
 import msm.core.minecraft_updater
-from msm.services.ddns_update import update_DNS
+from msm.services.ddns_update import test_update_DNS
 import subprocess
 import ipaddress
 from pathlib import Path
@@ -39,14 +39,14 @@ def run_setupsh():
     log.info(f"Moving setup.sh to: {tmpdir}")
 
     # Copy setup.sh file into a temp dir and give it permission to run
-    src = os.path.join(sys._MEIPASS, "setup.sh")
-    dst = os.path.join(tmpdir, "setup.sh")
-    shutil.copy(src, dst)
-    os.chmod(dst, 0o755)
+    source_path = os.path.join(sys._MEIPASS, "setup.sh") #type: ignore
+    destination_path = os.path.join(tmpdir, "setup.sh")
+    shutil.copy(source_path, destination_path)
+    os.chmod(destination_path, 0o755)
 
     # Run the setup file
     log.info("Running setup.sh...")
-    subprocess.run(["bash", dst], check=True)
+    subprocess.run(["bash", destination_path], check=True)
     log.info("Setup finished.")
 
     # Clean up temp dir
@@ -110,7 +110,7 @@ def dynu_setup():
         dynu_password = password_confirm()
         dynu_domain = questionary.text("What is your dynu domain?").ask()
 
-        credentials_valid = update_DNS(test=True, domain=dynu_domain, password=dynu_password)
+        credentials_valid = test_update_DNS(dynu_domain, dynu_password)
 
         if credentials_valid:
             print("DNS credentials [green]valid[/green]")
@@ -122,45 +122,42 @@ def dynu_setup():
     return dynu_password, dynu_domain
 
 
-def home_assistant_setup():
+def mqtt_setup():
     while True:
         clear_console()
 
-        print("Home Assistant will be used for some automatic tasks, like updating and backups")
-        print("But in order to use Home Assistant we will need its ip and token")
-        home_assistant_ip = questionary.text(
-            "What is you Home Assistant address?",
+        print("MQTT will be used to keep tabs on your Minecraft server")
+        print("It will publish its logs and what it is currently doing")
+        print("This does require an MQTT broker to be setup, like in Home Assistant")
+
+        mqtt_url = questionary.text(
+            "What is you MQTT broker address? (do not include port)",
             validate=lambda val: val.startswith("http://") or val.startswith("https://") or "Must start with http:// or https://",  # type: ignore
             default="http://",
         ).ask()
 
-        print("Getting your token is fairly easy")
-        print("Go to your profile in the bottom-left corner, then to the security tab.\nAt the bottom you will see long lived access token, create one, name it something like Bedrock server manager")
-        print("Then paste the token bellow")
-        home_assistant_token = questionary.password("Home Assistant token:").ask()
+        mqtt_port = int(questionary.text(
+            "What port is the broker on?",
+            validate=lambda val: val.isdigit() or "Must be a number",
+            default="1883"
+        ).ask())
 
-        url_valid, token_valid = check_api(home_assistant_ip, home_assistant_token)
+        mqtt_username = questionary.text("MQTT broker username:").ask()
+        mqtt_password = questionary.password("MQTT broker password:").ask()
 
-        color1 = "green" if url_valid else "red"
-        print(f"URL: [{color1}]{'A' if url_valid else 'Una'}vailable[/{color1}]")
-        color2 = "green" if token_valid else "red"
-        print(f"Token: [{color2}]{'Not' if not token_valid else ''} Valid[/{color2}]")
+        credentials_valid = check_mqtt(mqtt_url, mqtt_port, mqtt_username, mqtt_password)
 
-        if url_valid and token_valid:
+        if credentials_valid:
+            print("Credentials are [green]valid[/green]")
             questionary.press_any_key_to_continue("\nPress any key to continue...").ask()
             break
         else:
+            print("Credentials are [red]not valid[/red]")
             questionary.press_any_key_to_continue("Press any key to try again...").ask()
 
     clear_console()
-
-
-    print("Now we have to set up a switch")
-    print("First make a switch for turning on and off auto shutdown (useful for debugging)")
-    print("Go to settings > devices and services > helpers > add (switch)")
-    auto_shutdown_entity = questionary.text("Name of switch: ", validate=lambda val: val.startswith("input_boolean.") or "helper must be a switch", default="input_boolean.").ask()  # type: ignore
     
-    return home_assistant_ip, home_assistant_token, auto_shutdown_entity
+    return mqtt_url, mqtt_port, mqtt_username, mqtt_password
 
 
 def shutdown_mode_setup(drive_enabled: bool):
@@ -291,8 +288,8 @@ def main():
     auto_backup = "Automatic backups" in activated_services
 
     if home_assistant:
-        ha_ip, ha_token, auto_shutdown_entity = home_assistant_setup()
-        config_data["ha"] = {"ip": ha_ip, "token": ha_token, "shutdown_entity": auto_shutdown_entity}
+        mqtt_url, mqtt_port, mqtt_username, mqtt_password = mqtt_setup()
+        config_data["mqtt"] = {"url": mqtt_url, "port": mqtt_port, "username": mqtt_username, "password": mqtt_password}
 
     if dynu:
         dynu_password, dynu_domain = dynu_setup()
@@ -361,7 +358,7 @@ def main():
 
         if questionary.confirm("Do you want to continue?").ask():
             with Live(Spinner("dots9", text="Great, downloading now..."), refresh_per_second=10):
-                msm.core.minecraft_updater.get_console_bridge(cfg)
+                msm.core.minecraft_updater.get_latest_version_console_bridge(cfg)
 
             msm.core.minecraft_updater.authenticate_console_bridge(cfg)
             print("Now we just need to configure the bot")

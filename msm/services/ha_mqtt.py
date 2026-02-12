@@ -52,7 +52,7 @@ def check_mqtt(url: str, port: int, username: str, password: str) -> bool:
     
 
 def setup_mqtt(cfg: Config) -> mqtt.Client|None:
-    if not (cfg.mqtt_ip and cfg.mqtt_port):
+    if not (cfg.mqtt_url and cfg.mqtt_port):
         return None
     
     client = mqtt.Client()
@@ -62,6 +62,6 @@ def setup_mqtt(cfg: Config) -> mqtt.Client|None:
         password=cfg.mqtt_password,
     )
 
-    client.connect(cfg.mqtt_ip, cfg.mqtt_port, keepalive=60)
+    client.connect(cfg.mqtt_url, cfg.mqtt_port, keepalive=60)
 
     return client
