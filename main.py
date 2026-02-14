@@ -1,5 +1,5 @@
 from msm.services.ddns_update import update_DNS
-from msm.services.server_status import check_playercount
+from msm.services.server_status import MinecraftServer
 from msm.services.ha_mqtt import setup_mqtt
 from msm.config.load_config import Config
 import msm.core.backup as backup
@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import logging
 from rich.logging import RichHandler
+from time import sleep
 
 # Logger setup
 log = logging.getLogger("bsm")
@@ -41,6 +42,13 @@ def shutdown(reboot: bool = False):
         cmd.append("-r")
     cmd.append("now")
     subprocess.run(cmd)
+
+
+def shutdown_flag_present(cfg: Config):
+    if os.path.exists(os.path.join(cfg.path_base, "no_shutdown.flag")):
+        return True
+    else:
+        return False
 
 
 def hour_valid(hour: int) -> bool:
@@ -101,7 +109,7 @@ def normal_operation():
 
     if server_updated:
         if console_bridge_used:
-            get_console_bridge(cfg)
+            get_latest_version_console_bridge(cfg)
         shutdown(reboot=True)
         exit(0)
 
@@ -110,36 +118,39 @@ def normal_operation():
         if console_bridge_used:
             console_bridge_dir = os.path.join(cfg.path_base, "console_bridge")
             subprocess.Popen(["java", "-jar", str(console_bridge)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=console_bridge_dir)
+    
+    mc = MinecraftServer(cfg)
 
-    if cfg.timing_shutdown:
-        server_used = check_playercount(cfg)
-        auto_shutdown_enabled = entity_status(cfg)
+    while True:
+        sleep(10)
+        mc.update_player_count()
 
-        if server_used:
-            if auto_shutdown_enabled:
-                stop_server(cfg)
+        if mc.shutdown_requested:
 
-                if cfg.backup_directories:
-                    backup.main(cfg, type="quick")
+            backup_needed = mc.server_used
+            auto_shutdown_enabled = shutdown_flag_present(cfg)
+
+            if backup_needed:
+                if auto_shutdown_enabled:
+                    stop_server(cfg)
+
+                    if cfg.backup_directories:
+                        backup.main(cfg, type="quick")
+                    else:
+                        log.info("No backup directories, skipping backup")
+                    
+                    shutdown()
                 else:
-                    log.info("No backup directories, skipping backup")
-                
-                shutdown()
+                    log.info("Auto shutdown is turned off...")
             else:
-                log.info("Auto shutdown is shut off...")
-        else:
-            if auto_shutdown_enabled:
-                log.info("No one online, but server was not used, backup is not needed")
-                log.info("Shutting down Minecraft server...")
-                stop_server(cfg)
-                log.info("Shutting down...")
-                shutdown()
-    else:
-        log.warning("Auto shutdown is off, this is not reccomended, backups will not work")
+                if auto_shutdown_enabled:
+                    log.info("Shutting down server without backup...")
+                    stop_server(cfg)
+                    shutdown()
 
 
 def drive_backup():
-    log.info("Only backing up to drive")
+    log.info("Saving backup to drive")
     backup.main(cfg, type="drive")
     log.info("Shutting down...")
     shutdown()
@@ -157,9 +168,8 @@ def main():
         drive_backup()
     elif mode == Mode.INVALID:
         # Shutdown server if started at incorrect time
-        log.info("Invalid time, shutting down")
+        log.info("Invalid time, shutting down...")
         shutdown()
-        sys.exit(1)
     elif mode == Mode.CONFIGURATION:
         # Run setup file and go through setup questions
         from msm.config import configuration
