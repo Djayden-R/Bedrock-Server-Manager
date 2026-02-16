@@ -126,13 +126,12 @@ def mqtt_setup():
     while True:
         clear_console()
 
-        print("MQTT will be used to keep tabs on your Minecraft server")
-        print("It will publish its logs and what it is currently doing")
-        print("This does require an MQTT broker to be setup, like in Home Assistant")
+        print("MQTT will be used to view information about your Minecraft server")
+        print("This requires an MQTT broker")
 
         mqtt_url = questionary.text(
             "What is you MQTT broker address? (do not include port)",
-            validate=lambda val: val.startswith("http://") or val.startswith("https://") or "Must start with http:// or https://",  # type: ignore
+            validate=lambda val: not(val.startswith("http://") or val.startswith("https://")) or "Must NOT start with http:// or https://",  # type: ignore
             default="http://",
         ).ask()
 
