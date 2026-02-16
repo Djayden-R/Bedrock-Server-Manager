@@ -7,7 +7,7 @@ import yaml
 from msm.config.load_config import Config
 from msm.services.ha_mqtt import check_mqtt
 import msm.core.minecraft_updater
-from msm.services.ddns_update import test_update_DNS
+from msm.services.ddns_update import test_DNS
 import subprocess
 import ipaddress
 from pathlib import Path
@@ -110,7 +110,7 @@ def dynu_setup():
         dynu_password = password_confirm()
         dynu_domain = questionary.text("What is your dynu domain?").ask()
 
-        credentials_valid = test_update_DNS(dynu_domain, dynu_password)
+        credentials_valid = test_DNS(dynu_domain, dynu_password)
 
         if credentials_valid:
             print("DNS credentials [green]valid[/green]")
