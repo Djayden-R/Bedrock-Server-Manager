@@ -1,6 +1,6 @@
 from msm.services.ddns_update import update_DNS
 from msm.services.server_status import MinecraftServer
-from msm.services.ha_mqtt import setup_mqtt
+from msm.services.ha_mqtt import setup_mqtt, send_server_state
 from msm.config.load_config import Config
 import msm.core.backup as backup
 from msm.core.minecraft_updater import get_latest_version_console_bridge, update_minecraft_server
@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import logging
 from rich.logging import RichHandler
-from time import sleep
+from time import sleep, monotonic
 
 # Logger setup
 log = logging.getLogger("bsm")
@@ -94,6 +94,28 @@ def stop_server(cfg: Config):
         raise ValueError("Base path is not defined")
 
 
+def handle_shutdown(mc: MinecraftServer, cfg: Config):
+    backup_needed = mc.server_used
+    auto_shutdown_enabled = shutdown_flag_present(cfg)
+
+    if backup_needed:
+        if auto_shutdown_enabled:
+            stop_server(cfg)
+
+            if cfg.backup_directories:
+                backup.main(cfg, type="quick")
+            else:
+                log.info("No backup directories, skipping backup")
+            
+            shutdown()
+        else:
+            log.info("Auto shutdown is turned off...")
+    else:
+        if auto_shutdown_enabled:
+            log.info("Shutting down server without backup...")
+            stop_server(cfg)
+            shutdown()
+
 def normal_operation():
     if cfg.dynu_domain and cfg.dynu_pass:
         update_DNS(cfg)
@@ -120,33 +142,14 @@ def normal_operation():
             subprocess.Popen(["java", "-jar", str(console_bridge)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=console_bridge_dir)
     
     mc = MinecraftServer(cfg)
+    mqtt = setup_mqtt(cfg)
 
     while True:
-        sleep(10)
-        mc.update_player_count()
-
-        if mc.shutdown_requested:
-
-            backup_needed = mc.server_used
-            auto_shutdown_enabled = shutdown_flag_present(cfg)
-
-            if backup_needed:
-                if auto_shutdown_enabled:
-                    stop_server(cfg)
-
-                    if cfg.backup_directories:
-                        backup.main(cfg, type="quick")
-                    else:
-                        log.info("No backup directories, skipping backup")
-                    
-                    shutdown()
-                else:
-                    log.info("Auto shutdown is turned off...")
-            else:
-                if auto_shutdown_enabled:
-                    log.info("Shutting down server without backup...")
-                    stop_server(cfg)
-                    shutdown()
+        if mc.tick():
+            send_server_state(mc, mqtt)
+            if mc.shutdown_requested:
+                handle_shutdown(mc, cfg)
+        sleep(0.1)
 
 
 def drive_backup():
