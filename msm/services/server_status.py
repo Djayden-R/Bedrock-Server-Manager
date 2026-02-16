@@ -1,6 +1,7 @@
 from mcstatus import BedrockServer
 from msm.config.load_config import Config
 import logging
+from time import monotonic
 
 # Get logger
 log = logging.getLogger("bsm")
@@ -19,7 +20,18 @@ class MinecraftServer():
         
         self.total_checks = (cfg.timing_shutdown * 60)/10
         self.checks_remaining = self.total_checks
+        self.last_check = monotonic()
         self.shutdown_requested = False
+    
+    def tick(self):
+        now = monotonic()
+
+        if now - self.last_check >= 5:
+            self.update_player_count()
+            return True
+        else:
+            return False
+
     
     def update_player_count(self):
         if not self.shutdown_mode:
