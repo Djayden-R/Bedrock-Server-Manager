@@ -1,9 +1,7 @@
-from requests import get, head, RequestException
-import urllib3
 from msm.config.load_config import Config
+from msm.services.server_status import MinecraftServer
 import paho.mqtt.client as mqtt
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import json
 
 MQTT_BROKER = "192.168.1.186"
 MQTT_PORT = 1883
@@ -45,7 +43,7 @@ def check_mqtt(url: str, port: int, username: str, password: str) -> bool:
 
         client.connect(url, port, keepalive=60)
         client.disconnect()
-    except Exception as e:
+    except Exception:
         return False
     else:
         return True
@@ -63,5 +61,25 @@ def setup_mqtt(cfg: Config) -> mqtt.Client|None:
     )
 
     client.connect(cfg.mqtt_url, cfg.mqtt_port, keepalive=60)
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.loop_start()
 
     return client
+
+def send_server_state(mc: MinecraftServer, mqtt_client: mqtt.Client|None):
+    if not mqtt_client:
+        return
+    
+    server_info = {
+        "player_count": mc.player_count,
+        "server_used": mc.server_used,
+        "shutdown_mode": mc.shutdown_mode,
+        "checks_remaining": mc.checks_remaining,
+        "shutdown_requested": mc.shutdown_requested
+    }
+
+    json_payload = json.dumps(server_info)
+
+    mqtt_client.publish("bedrock_manager/server/state", json_payload)
