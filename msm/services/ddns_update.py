@@ -9,7 +9,7 @@ log = logging.getLogger("bsm")
 url = "https://api.dynu.com/nic/update"
 
 
-def test_update_DNS(host_name: str, password: str) -> bool:
+def test_DNS(host_name: str, password: str) -> bool:
     response = update_DNS_raw(host_name, password)
 
     if "good" in response or "nochg" in response:
