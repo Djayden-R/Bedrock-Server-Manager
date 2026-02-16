@@ -9,7 +9,7 @@ git clone -b dev --single-branch https://github.com/Djayden-R/Bedrock-server-man
 # Make a virtual environment
 sudo apt install python3.12-venv -y
 
-python3 -m venv venv
+python3.12 -m venv venv
 
 source ./venv/bin/activate
 
@@ -18,6 +18,8 @@ pip install -r Bedrock-server-manager/requirements.txt
 
 pip install pyinstaller
 
+cd Bedrock-server-manager
+
 # Make the executable
 pyinstaller --onefile --add-data "setup.sh:." main.py
 
@@ -25,7 +27,7 @@ pyinstaller --onefile --add-data "setup.sh:." main.py
 cp dist/main ~/bsm
 
 # Clean up files
-cd
+cd ~
 
 deactivate
 
