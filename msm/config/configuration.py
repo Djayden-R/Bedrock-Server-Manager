@@ -265,14 +265,14 @@ def main():
 
     questionary.press_any_key_to_continue("I am going to ask you a few questions to set everything up.").ask()
 
-    activated_services = questionary.checkbox("What services do you want to set up?\nAll of these are recommended", choices=["Home Assistant", "Dynu DNS", "Automatic shutdown", "Automatic backups"]).ask()
+    activated_services = questionary.checkbox("What services do you want to set up?\nAll of these are recommended", choices=["MQTT", "Dynu DNS", "Automatic shutdown", "Automatic backups"]).ask()
 
-    home_assistant = "Home Assistant" in activated_services
+    mqtt = "MQTT" in activated_services
     dynu = "Dynu DNS" in activated_services
     auto_shutdown = "Automatic shutdown" in activated_services
     auto_backup = "Automatic backups" in activated_services
 
-    if home_assistant:
+    if mqtt:
         mqtt_url, mqtt_port, mqtt_username, mqtt_password = mqtt_setup()
         config_data["mqtt"] = {"url": mqtt_url, "port": mqtt_port, "username": mqtt_username, "password": mqtt_password}
 
@@ -324,7 +324,7 @@ def main():
         yaml.dump(config_data, f, default_flow_style=False, indent=2)
         print(f"[#9e9e9e]Config file saved to {config_location}")
 
-    if dynu or home_assistant:
+    if dynu or mqtt:
         print("[underline]Never[/] share this file with anyone as it will give access to all of the services you configured")
 
     # Load config we just saved

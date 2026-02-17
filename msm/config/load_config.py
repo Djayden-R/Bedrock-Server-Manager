@@ -8,7 +8,7 @@ import sys
 
 @dataclass(frozen=True)
 class Config:
-    ## Required
+    ## Required variables ##
 
     # Minecraft Server
     mc_ip: IPv4Address | IPv6Address
@@ -17,9 +17,10 @@ class Config:
     # Paths
     path_base: Path
     
-    ## Optional
 
-    # Home Assistant
+    ## Optional variables ##
+
+    # MQTT
     mqtt_url: Optional[str] = None
     mqtt_port: Optional[int] = None
     mqtt_username: Optional[str] = None
