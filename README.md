@@ -22,6 +22,7 @@ After setup, the program determines which mode to run based on configuration and
 ## Installation
 
 ### Initial Setup
+
 Firstly, place the script in the desired location, then just run the following commands in that folder
 
 ```bash
@@ -36,22 +37,29 @@ The setup script will guide you through the configuration process.
 ```bash
 ./{location}/bedrock-manager
 ```
+
 or after adding the alias
+
 ```bash
 bsm
 ```
 
 ### Turning off auto shutdown
+
 If you need to work on the server without being disturbed by the automatic shutdown you will need to create the no shutdown flag, like this:
+
  ```bash
 cd Bedrock-server-manager
 touch no_shutdown.flag
 ```
+
 To make it shutdown again, you'll need to remove the file again:
- ```bash
+
+```bash
 cd Bedrock-server-manager
 rm no_shutdown.flag
 ```
+
 ## Features
 
 - **Home Assistant Integration** - Manage auto shutdown via a Home Assistant switch
@@ -64,10 +72,12 @@ rm no_shutdown.flag
 To automatically start this program on boot, follow [**this tutorial**](https://www.youtube.com/watch?v=Un9ASbGCN0U).
 
 To configure Rclone follow one of these tutorials:
+
 - [**for Google Drive**](https://www.youtube.com/watch?v=FQuMFrazK1Y)
 - [**for Onedrive**](https://www.youtube.com/watch?v=dTFt2DkOde4)
 
 ## Planned features
+
 - Replacing Home Assistant API for MQTT
 - Adding (almost) all variables to MQTT
 - Parsing tmux to make a chat sensor
