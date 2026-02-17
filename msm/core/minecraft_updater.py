@@ -9,21 +9,8 @@ from pathlib import Path
 from typing import Optional
 import yaml
 import logging
-from rich.logging import RichHandler
 
-# Logger setup
 log = logging.getLogger("bsm")
-log.setLevel(logging.INFO)
-
-handler = RichHandler(
-    rich_tracebacks=True,
-    show_time=True,
-    show_level=True,
-    markup=True,
-    log_time_format="%H:%M:%S.%f"
-)
-log.addHandler(handler)
-log.propagate = False
 
 console_bridge_repo = "MCXboxBroadcast/Broadcaster"
 minecraft_updater_repo = "ghwns9652/Minecraft-Bedrock-Server-Updater"

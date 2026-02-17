@@ -17,21 +17,8 @@ from rich import print
 from rich.spinner import Spinner
 from rich.live import Live
 import logging
-from rich.logging import RichHandler
 
-# Logger setup
 log = logging.getLogger("bsm")
-log.setLevel(logging.INFO)
-
-handler = RichHandler(
-    rich_tracebacks=True,
-    show_time=True,
-    show_level=True,
-    markup=True,
-    log_time_format="%H:%M:%S.%f"
-)
-log.addHandler(handler)
-log.propagate = False
 
 def run_setupsh():
     # Make a temp folder
@@ -132,7 +119,6 @@ def mqtt_setup():
         mqtt_url = questionary.text(
             "What is you MQTT broker address? (do not include port)",
             validate=lambda val: not(val.startswith("http://") or val.startswith("https://")) or "Must NOT start with http:// or https://",  # type: ignore
-            default="http://",
         ).ask()
 
         mqtt_port = int(questionary.text(
