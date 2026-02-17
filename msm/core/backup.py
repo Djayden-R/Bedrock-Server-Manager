@@ -27,7 +27,7 @@ def generate_file_name(cfg: Config):
 
 def generate_zip(cfg: Config, backup_name: str) -> Optional[Path]:
     """Generate a zip file from the backup directories"""
-    if cfg.backup_directories and cfg.path_base:
+    if cfg.backup_directories:
         with tempfile.TemporaryDirectory() as temp_dir:
             for directory in cfg.backup_directories:
                 directory = Path(directory)

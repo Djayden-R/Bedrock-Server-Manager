@@ -79,19 +79,13 @@ def get_mode():
 
 
 def start_server(cfg: Config):
-    if cfg.path_base:
-        mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
-        subprocess.run(['bash', mc_updater_path+'/updater/startserver.sh', mc_updater_path])
-    else:
-        raise ValueError("Base path is not defined")
+    mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
+    subprocess.run(['bash', mc_updater_path+'/updater/startserver.sh', mc_updater_path])
 
 
 def stop_server(cfg: Config):
-    if cfg.path_base:
-        mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
-        subprocess.run(['bash', mc_updater_path+'/updater/stopserver.sh', mc_updater_path])
-    else:
-        raise ValueError("Base path is not defined")
+    mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
+    subprocess.run(['bash', mc_updater_path+'/updater/stopserver.sh', mc_updater_path])
 
 
 def handle_shutdown(mc: MinecraftServer, cfg: Config):
@@ -123,11 +117,9 @@ def normal_operation():
     # Try to update server and save whether it was updated
     server_updated = update_minecraft_server(cfg)
 
-    if cfg.path_base:
-        console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
-        console_bridge_used = console_bridge.exists()
-    else:
-        raise ValueError("Base path is not defined")
+    console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
+    console_bridge_used = console_bridge.exists()
+
 
     if server_updated:
         if console_bridge_used:
