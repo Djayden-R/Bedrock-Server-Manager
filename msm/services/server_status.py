@@ -11,8 +11,9 @@ class MinecraftServer():
         self.server = BedrockServer(str(cfg.mc_ip), cfg.mc_port)
         self.player_count = None
         self.server_used = False
+        self.last_check = monotonic()
 
-        if not (cfg.timing_shutdown and cfg.mc_ip and cfg.mc_port):
+        if not cfg.timing_shutdown:
             self.shutdown_mode = False
             return
         else:
@@ -20,7 +21,6 @@ class MinecraftServer():
         
         self.total_checks = (cfg.timing_shutdown * 60)/10
         self.checks_remaining = self.total_checks
-        self.last_check = monotonic()
         self.shutdown_requested = False
     
     def tick(self):
@@ -28,6 +28,7 @@ class MinecraftServer():
 
         if now - self.last_check >= 5:
             self.update_player_count()
+            self.last_check = now
             return True
         else:
             return False
