@@ -33,7 +33,7 @@ class MinecraftServer():
         else:
             return False
 
-    
+
     def update_player_count(self):
         if not self.shutdown_mode:
             return
@@ -58,7 +58,6 @@ class MinecraftServer():
             log.info(f"{self.player_count} player(s) online")
             self.checks_remaining = self.total_checks
 
-        if self.shutdown_mode:
-            if self.checks_remaining == 0:
-                self.shutdown_requested = True
+        if self.checks_remaining <= 0:
+            self.shutdown_requested = True
 
