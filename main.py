@@ -140,6 +140,7 @@ def normal_operation():
     while True:
         if mc.tick():
             send_server_state(mc, mqtt)
+            log.info(mc.__dict__)
             if mc.shutdown_requested:
                 handle_shutdown(mc, cfg)
         sleep(0.1)
