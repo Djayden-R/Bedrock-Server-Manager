@@ -103,8 +103,10 @@ def handle_shutdown(mc: MinecraftServer, cfg: Config):
             log.info("Auto shutdown is turned off...")
     else:
         if not auto_shutdown_disabled:
-            log.info("Shutting down server without backup...")
+            log.info("Shutting down without backup...")
+            log.info("Stopping server...")
             stop_server(cfg)
+            log.info("Shutting down...")
             shutdown()
 
 def normal_operation():
