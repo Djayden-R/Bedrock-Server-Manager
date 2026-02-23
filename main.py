@@ -87,12 +87,10 @@ def stop_server(cfg: Config):
 
 def handle_shutdown(mc: MinecraftServer, cfg: Config):
     backup_needed = mc.server_used_since_boot
-    auto_shutdown_enabled = shutdown_flag_present(cfg)
-
-    log.info(f"Backup needed: {backup_needed}\nShutdown enabled: {auto_shutdown_enabled}")
+    auto_shutdown_disabled = shutdown_flag_present(cfg)
 
     if backup_needed:
-        if auto_shutdown_enabled:
+        if not auto_shutdown_disabled:
             stop_server(cfg)
 
             if cfg.backup_directories:
@@ -104,7 +102,7 @@ def handle_shutdown(mc: MinecraftServer, cfg: Config):
         else:
             log.info("Auto shutdown is turned off...")
     else:
-        if auto_shutdown_enabled:
+        if not auto_shutdown_disabled:
             log.info("Shutting down server without backup...")
             stop_server(cfg)
             shutdown()
