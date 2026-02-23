@@ -19,7 +19,7 @@ class MinecraftServer():
         else:
             self.shutdown_mode = True
         
-        self.total_checks = (cfg.timing_shutdown * 60)/10
+        self.total_checks = (cfg.timing_shutdown * 60)/5
         self.checks_remaining = self.total_checks
         self.shutdown_requested = False
     
@@ -62,4 +62,5 @@ class MinecraftServer():
 
         if self.checks_remaining == 0:
             self.shutdown_requested = True
+            log.info("Shutdown requested")
 
