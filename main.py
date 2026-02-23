@@ -45,10 +45,7 @@ def shutdown(reboot: bool = False):
 
 
 def shutdown_flag_present(cfg: Config):
-    if os.path.exists(os.path.join(cfg.path_base, "no_shutdown.flag")):
-        return True
-    else:
-        return False
+    return os.path.exists(os.path.join(cfg.path_base, "no_shutdown.flag"))
 
 
 def hour_valid(hour: int) -> bool:
@@ -91,6 +88,8 @@ def stop_server(cfg: Config):
 def handle_shutdown(mc: MinecraftServer, cfg: Config):
     backup_needed = mc.server_used_since_boot
     auto_shutdown_enabled = shutdown_flag_present(cfg)
+
+    log.info(f"Backup needed: {backup_needed}\nShutdown enabled: {auto_shutdown_enabled}")
 
     if backup_needed:
         if auto_shutdown_enabled:
@@ -142,6 +141,7 @@ def normal_operation():
             send_server_state(mc, mqtt)
             log.info(mc.__dict__)
             if mc.shutdown_requested:
+                log.info("Starting shutdown process")
                 handle_shutdown(mc, cfg)
         sleep(0.1)
 
