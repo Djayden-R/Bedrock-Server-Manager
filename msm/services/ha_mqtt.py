@@ -15,22 +15,6 @@ MQTT_TOPICS = [
     ("minecraft/version", 0),
 ]
 
-def on_connect(client, userdata, flags, rc):
-    connection_success = rc == 0
-    if connection_success:
-        for topic, qos in MQTT_TOPICS:
-            client.subscribe(topic, qos)
-    else:
-        print(f"Connecting to MQTT failed: {rc}")
-
-
-def on_message(client, userdata, msg):
-    payload = msg.payload.decode("utf-8", errors="ignore")
-    print(f"[MQTT EVENT] {msg.topic}: {payload}")
-
-    if msg.topic == "minecraft/players":
-        player_amount = payload
-
 
 def check_mqtt(url: str, port: int, username: str, password: str) -> bool:
     try:
@@ -49,10 +33,10 @@ def check_mqtt(url: str, port: int, username: str, password: str) -> bool:
         return True
     
 
-def setup_mqtt(cfg: Config) -> mqtt.Client|None:
+def setup_mqtt(cfg: Config, mc: MinecraftServer) -> mqtt.Client|None:
     if not (cfg.mqtt_url and cfg.mqtt_port):
         return None
-    
+
     client = mqtt.Client()
 
     client.username_pw_set(
@@ -60,9 +44,24 @@ def setup_mqtt(cfg: Config) -> mqtt.Client|None:
         password=cfg.mqtt_password,
     )
 
-    client.connect(cfg.mqtt_url, cfg.mqtt_port, keepalive=60)
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            for topic, qos in MQTT_TOPICS:
+                client.subscribe(topic, qos)
+        else:
+            print(f"Connecting to MQTT failed: {rc}")
+
+
+    def on_message(client, userdata, msg):
+        payload = msg.payload.decode("utf-8", errors="ignore")
+        print(f"[MQTT EVENT] {msg.topic}: {payload}")
+
+
+    
     client.on_connect = on_connect
     client.on_message = on_message
+
+    client.connect(cfg.mqtt_url, cfg.mqtt_port, keepalive=60)
 
     client.loop_start()
 
@@ -74,7 +73,7 @@ def send_server_state(mc: MinecraftServer, mqtt_client: mqtt.Client|None):
     
     server_info = {
         "player_count": mc.player_count,
-        "server_used": mc.server_used,
+        "server_used_since_boot": mc.server_used_since_boot,
         "shutdown_mode": mc.shutdown_mode,
         "checks_remaining": mc.checks_remaining,
         "shutdown_requested": mc.shutdown_requested
@@ -82,4 +81,4 @@ def send_server_state(mc: MinecraftServer, mqtt_client: mqtt.Client|None):
 
     json_payload = json.dumps(server_info)
 
-    mqtt_client.publish("bedrock_manager/server/state", json_payload)
+    mqtt_client.publish("bedrock_manager/server", json_payload)

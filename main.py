@@ -89,7 +89,7 @@ def stop_server(cfg: Config):
 
 
 def handle_shutdown(mc: MinecraftServer, cfg: Config):
-    backup_needed = mc.server_used
+    backup_needed = mc.server_used_since_boot
     auto_shutdown_enabled = shutdown_flag_present(cfg)
 
     if backup_needed:
@@ -134,7 +134,8 @@ def normal_operation():
             subprocess.Popen(["java", "-jar", str(console_bridge)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=console_bridge_dir)
     
     mc = MinecraftServer(cfg)
-    mqtt = setup_mqtt(cfg)
+    
+    mqtt = setup_mqtt(cfg, mc)
 
     while True:
         if mc.tick():

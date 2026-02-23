@@ -10,7 +10,7 @@ class MinecraftServer():
     def __init__(self, cfg: Config):
         self.server = BedrockServer(str(cfg.mc_ip), cfg.mc_port)
         self.player_count = None
-        self.server_used = False
+        self.server_used_since_boot = False
         self.last_check = monotonic()
 
         if not cfg.timing_shutdown:
@@ -33,7 +33,7 @@ class MinecraftServer():
         else:
             return False
 
-
+    
     def update_player_count(self):
         if not self.shutdown_mode:
             return
@@ -47,17 +47,19 @@ class MinecraftServer():
         except Exception as e:
             log.error(f"Error checking server status: {e}")
             return
+        
+        someone_online = self.player_count > 0
 
-        if self.player_count == 0:
-            self.checks_remaining -= 1
-            log.info(f"No one online ({self.checks_remaining} remaining)")
-        else:
-            if not self.server_used:
-                self.server_used = True
+        if someone_online:
+            if not self.server_used_since_boot:
+                self.server_used_since_boot = True
                 log.info("Server used for the first time")
             log.info(f"{self.player_count} player(s) online")
             self.checks_remaining = self.total_checks
+        else:
+            self.checks_remaining -= 1
+            log.info(f"No one online ({self.checks_remaining} remaining)")
 
-        if self.checks_remaining <= 0:
+        if self.checks_remaining == 0:
             self.shutdown_requested = True
 
