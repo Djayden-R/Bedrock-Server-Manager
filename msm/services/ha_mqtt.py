@@ -55,7 +55,7 @@ def setup_mqtt(cfg: Config, mc: MinecraftServer) -> mqtt.Client|None:
     def on_message(client, userdata, msg):
         payload = msg.payload.decode("utf-8", errors="ignore")
         print(f"[MQTT EVENT] {msg.topic}: {payload}")
-
+        
 
     
     client.on_connect = on_connect
@@ -70,11 +70,13 @@ def setup_mqtt(cfg: Config, mc: MinecraftServer) -> mqtt.Client|None:
 def send_server_state(mc: MinecraftServer, mqtt_client: mqtt.Client|None):
     if not mqtt_client:
         return
-    
+
     server_info = {
         "player_count": mc.player_count,
+        "server_online": mc.server_online,
+        "server_boot_time": mc.server_boot_time,
         "server_used_since_boot": mc.server_used_since_boot,
-        "shutdown_mode": mc.shutdown_mode,
+        "shutdown_enabled": mc.shutdown_enabled,
         "checks_remaining": mc.checks_remaining,
         "shutdown_requested": mc.shutdown_requested
     }

@@ -5,7 +5,7 @@ from msm.config.load_config import Config
 import msm.core.backup as backup
 from msm.core.minecraft_updater import get_latest_version_console_bridge, update_minecraft_server
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import subprocess
 import os
@@ -13,6 +13,7 @@ from pathlib import Path
 import logging
 from rich.logging import RichHandler
 from time import sleep, monotonic
+import paho.mqtt.client as mqtt
 
 # Logger setup
 log = logging.getLogger("bsm")
@@ -80,9 +81,11 @@ def start_server(cfg: Config):
     subprocess.run(['bash', mc_updater_path+'/updater/startserver.sh', mc_updater_path])
 
 
-def stop_server(cfg: Config):
+def stop_server(cfg: Config, mc: MinecraftServer):
     mc_updater_path = os.path.join(cfg.path_base, "minecraft_updater")
     subprocess.run(['bash', mc_updater_path+'/updater/stopserver.sh', mc_updater_path])
+    mc.server_online = False
+    mc.server_boot_time = None
 
 
 def handle_shutdown(mc: MinecraftServer, cfg: Config):
@@ -91,7 +94,7 @@ def handle_shutdown(mc: MinecraftServer, cfg: Config):
 
     if backup_needed:
         if not auto_shutdown_disabled:
-            stop_server(cfg)
+            stop_server(cfg, mc)
 
             if cfg.backup_directories:
                 backup.main(cfg, type="quick")
@@ -105,11 +108,11 @@ def handle_shutdown(mc: MinecraftServer, cfg: Config):
         if not auto_shutdown_disabled:
             log.info("Shutting down without backup...")
             log.info("Stopping server...")
-            stop_server(cfg)
+            stop_server(cfg, mc)
             log.info("Shutting down...")
             shutdown()
 
-def normal_operation():
+def normal_operation(mc: MinecraftServer, mqtt: mqtt.Client|None):
     if cfg.dynu_domain and cfg.dynu_pass:
         update_DNS(cfg)
 
@@ -119,22 +122,23 @@ def normal_operation():
     console_bridge = Path(os.path.join(cfg.path_base, "console_bridge", "MCXboxBroadcastStandalone.jar"))
     console_bridge_used = console_bridge.exists()
 
-
     if server_updated:
+        if mqtt:
+            current_time = datetime.now(timezone.utc).isoformat()
+            mqtt.publish("bedrock_manager/server/update_time", current_time)
+
         if console_bridge_used:
             get_latest_version_console_bridge(cfg)
+        
         shutdown(reboot=True)
-        exit(0)
 
     else:
         start_server(cfg)
         if console_bridge_used:
             console_bridge_dir = os.path.join(cfg.path_base, "console_bridge")
             subprocess.Popen(["java", "-jar", str(console_bridge)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=console_bridge_dir)
-    
-    mc = MinecraftServer(cfg)
-    
-    mqtt = setup_mqtt(cfg, mc)
+            if mqtt:
+                mqtt.publish("bedrock_manager/server/console_bridge_active", True)
 
     while True:
         if mc.tick():
@@ -156,9 +160,15 @@ def main():
     mode = get_mode()
     log.info(f"Current mode: {mode.value}")
 
+    mc = MinecraftServer(cfg)
+    mqtt = setup_mqtt(cfg, mc)
+
+    if mqtt:
+        mqtt.publish("bedrock_manager/server/mode", str(mode))
+
     if mode == Mode.NORMAL:
         # Standard operating mode, shutdown after defined time and create backups (depending on config)
-        normal_operation()
+        normal_operation(mc, mqtt)
     elif mode == Mode.DRIVE_BACKUP:
         # Upload latest backup to drive, then shutdown
         drive_backup()
